@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Indicators List{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 bg-gray-900 text-white">
+  <h1 class="text-2xl font-bold mb-6">Raw Data</h1>
+  <form method="get" class="mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div>
+        <label for="province" class="block mb-2">Province</label>
+        <select id="province" name="province" class="w-full p-2 bg-gray-800 border border-gray-700 text-white">
+          <option value="">All</option>
+          {% for province in provinces %}
+          <option value="{{ province }}" {% if request.query_params.province == province %}selected{% endif %}>{{ province }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="title" class="block mb-2">Title</label>
+        <select id="title" name="title" class="w-full p-2 bg-gray-800 border border-gray-700 text-white">
+          <option value="">All</option>
+          {% for title in titles %}
+          <option value="{{ title }}" {% if request.query_params.title == title %}selected{% endif %}>{{ title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="indicator" class="block mb-2">Indicator</label>
+        <select id="indicator" name="indicator" class="w-full p-2 bg-gray-800 border border-gray-700 text-white">
+          <option value="">All</option>
+          {% for indicator in indicators %}
+          <option value="{{ indicator.indicator }}" {% if request.query_params.indicator == indicator.indicator %}selected{% endif %}>{{ indicator.indicator }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="year_range" class="block mb-2">Year Range</label>
+        <input type="text" id="year_range" name="year_range" placeholder="2020-2023" value="{{ request.query_params.year_range }}" class="w-full p-2 bg-gray-800 border border-gray-700 text-white">
+      </div>
+    </div>
+    <div class="mt-4">
+      <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white">Filter</button>
+    </div>
+  </form>
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-gray-800 border border-gray-700">
+      <thead class="bg-gray-700">
+        <tr>
+          <th class="py-2 px-4 border-b border-gray-600">Province</th>
+          <th class="py-2 px-4 border-b border-gray-600">Year</th>
+          <th class="py-2 px-4 border-b border-gray-600">Title</th>
+          <th class="py-2 px-4 border-b border-gray-600">Indicator</th>
+          <th class="py-2 px-4 border-b border-gray-600">Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for indicator in indicators %}
+        <tr class="hover:bg-gray-700">
+          <td class="py-2 px-4 border-b border-gray-600">{{ indicator.province }}</td>
+          <td class="py-2 px-4 border-b border-gray-600">{{ indicator.year }}</td>
+          <td class="py-2 px-4 border-b border-gray-600">{{ indicator.title }}</td>
+          <td class="py-2 px-4 border-b border-gray-600">{{ indicator.indicator }}</td>
+          <td class="py-2 px-4 border-b border-gray-600">{{ indicator.value }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

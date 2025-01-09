@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Indicator{% endblock %}
+
+{% block content %}
+<div class="bg-gray-900 py-6 flex flex-col justify-center sm:py-12">
+  <div class="relative py-3 sm:max-w-xl sm:mx-auto w-4/5">
+    <div class="relative px-4 py-10 bg-gray-800 mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
+      <div class="max-w-md mx-auto">
+        <div class="flex items-center space-x-5">
+          <div class="block pl-2 font-semibold text-xl text-white">
+            <h2 class="leading-relaxed">Edit Indicator</h2>
+          </div>
+        </div>
+
+        {% if error %}
+        <div class="mt-4 p-4 text-red-700 bg-red-100 rounded-lg">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" class="divide-y divide-gray-700">
+          <div class="py-8 text-base leading-6 space-y-6 text-white sm:text-lg sm:leading-7">
+            <div class="flex flex-col">
+              <label class="leading-loose">Province</label>
+              <input type="text" name="province" value="{{ indicator.province }}" readonly
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700">
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Year</label>
+              <input type="number" name="year" value="{{ indicator.year }}" required
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700">
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Title</label>
+              <input type="text" name="title" value="{{ indicator.title }}" required
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700">
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Indicator</label>
+              <input type="text" name="indicator" value="{{ indicator.indicator }}" required
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700">
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Value</label>
+              <input type="number" name="value" step="0.01" value="{{ indicator.value }}" required
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700">
+            </div>
+          </div>
+          <div class="pt-4 flex items-center space-x-4">
+            <button type="submit"
+              class="bg-blue-600 flex justify-center items-center w-full text-white px-4 py-3 rounded-md focus:outline-none hover:bg-blue-700 transition duration-300 ease-in-out">
+              Update Indicator
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

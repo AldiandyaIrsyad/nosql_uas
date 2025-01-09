@@ -1,0 +1,27 @@
+db.indicators.find({"province": "indonesia"})
+indicators
+indicators.find({"province": "indonesia"})
+show collections
+show collection
+use nosql_uas_db
+show dbs
+show dbs\
+show dbs
+db.indicators.distinct("province")
+db.indicators.find()
+show collections
+use indicators
+show dbs
+db.indicators.find()
+show collections
+use indicators
+show dbs
+show db
+db
+show collections
+show dbs
+show collections
+db.test_collection.find()
+show collections
+use test_db
+show dbs

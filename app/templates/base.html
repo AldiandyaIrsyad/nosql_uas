@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <link href="/static/styles.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="/"
+                        class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Home</a>
+                    <a href="/indicators"
+                        class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Raw
+                        Data</a>
+                    {% if current_user.is_authenticated %}
+                    <a href="/indicators/create"
+                        class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Add
+                        New Data</a>
+                    <a href="/indicators/manage"
+                        class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Manage
+                        Data</a>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-center">
+                    {% if not current_user.is_authenticated %}
+                    <a href="/auth/login"
+                        class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Login</a>
+                    <a href="/auth/register"
+                        class="ml-4 bg-blue-600 text-white hover:bg-blue-700 px-3 py-2 rounded-md text-sm font-medium">Register</a>
+                    {% else %}
+                    <div class="flex items-center">
+                        <span class="text-gray-300 px-3 py-2 text-sm font-medium">Welcome, {{ current_user.username
+                            }}</span>
+                        <form class="block ml-4 flex items-center h-full mb-0" action="/auth/logout" method="post">
+                            <div>
+                                <button type="submit"
+                                    class="bg-red-600 text-white hover:bg-red-700 px-3 py-2 rounded-md text-sm font-medium">
+                                    Logout
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+
+</html>

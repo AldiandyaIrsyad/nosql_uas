@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Provinces List{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Unique Provinces</h1>
+  <ul class="list-group">
+    {% for province in provinces %}
+    <li class="list-group-item">{{ province }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

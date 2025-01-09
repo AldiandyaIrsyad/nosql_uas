@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+{% block title %}Indonesia Provinces Map{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  #map {
+    height: 600px;
+    width: 100%;
+    background: #1a1a2e;
+  }
+
+  .info {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: #1a1a2e;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+  }
+
+  .legend {
+    line-height: 18px;
+    color: #fff;
+  }
+
+  .legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+  }
+</style>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 text-white p-4">
+  <div class="max-w-7xl mx-auto space-y-4">
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold">Indonesia Provinces Map</h1>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <select id="titleSelect" onchange="onTitleChange()"
+        class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Select an indicator</option>
+        {% for title in titles %}
+        <option value="{{ title }}" {% if title==current_title %}selected{% endif %}>
+          {{ title }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <select id="yearSelect" onchange="onYearChange()"
+        class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Select year</option>
+        {% for year in years|sort(reverse=true) %}
+        <option value="{{ year }}" {% if loop.first %}selected{% endif %}>
+          {{ year }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- National Average -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <div id="nationalAverage" class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700">
+        National Average: <span id="nationalAverageValue">N/A</span>
+      </div>
+    </div>
+
+    <!-- Map Container -->
+    <div class="relative rounded-lg overflow-hidden border border-gray-700 mb-6">
+      <div id="map" class="h-[600px] w-full bg-gray-800"></div>
+    </div>
+
+    <!-- Province Select -->
+    <div class="flex flex-wrap gap-4 mb-4">
+      <select id="provinceSelect" onchange="onProvinceChange()"
+        class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        {% for province in provinces %}
+        <option value="{{ province }}" {% if loop.first %}selected{% endif %}>
+          {{ province }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <select id="graphTitleSelect" onchange="onGraphTitleChange()"
+        class="bg-gray-800 text-white px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Select an indicator for graph</option>
+        {% for title in titles %}
+        <option value="{{ title }}" {% if title==current_title %}selected{% endif %}>
+          {{ title }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Graph Container -->
+    <div class="relative rounded-lg overflow-hidden border border-gray-700">
+      <div id="graph" class="h-[400px] w-full bg-gray-800"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="/static/indonesiaGeoJson.js"></script>
+<script>
+  let currentMin, currentMax;
+  const titleSelect = document.getElementById('titleSelect');
+  const yearSelect = document.getElementById('yearSelect');
+  const provinceSelect = document.getElementById('provinceSelect');
+  const graphTitleSelect = document.getElementById('graphTitleSelect');
+  const nationalAverageValue = document.getElementById('nationalAverageValue');
+  const map = L.map('map', { center: [-2.5, 118], zoom: 5 });
+
+  function getMinMax(values) {
+
+    const sorted = values.sort((a, b) => a - b);
+    let currentMin = sorted[0];
+
+    // if there only one value
+    if (sorted.length === 1) {
+      return [currentMin, currentMin];
+    }
+
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] !== currentMin) {
+        currentMin = sorted[i];
+        break;
+      }
+    }
+
+    // delete multiple values that has the maximum value
+    for (let i = sorted.length - 2; i >= 0; i--) {
+      if (sorted[i] !== currentMax) {
+        currentMax = sorted[i];
+        break;
+      }
+    }
+
+    if (currentMax === undefined) {
+      return [currentMin, currentMin];
+    }
+
+    if (currentMin === currentMax) {
+      return [sorted[0], sorted[sorted.length - 1]];
+    }
+
+
+    // if current
+
+
+
+    return [currentMin, currentMax];
+
+  }
+
+  // Add tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+
+  // Utility functions
+  function convertToGeoJSON(geometries) {
+    return {
+      type: "FeatureCollection",
+      features: Object.entries(geometries).map(([name, geometry]) => ({
+        type: "Feature",
+        properties: { name },
+        geometry
+      }))
+    };
+  }
+
+  function getQuantile(arr, q) {
+    const sorted = [...arr].sort((a, b) => a - b);
+    const pos = (sorted.length - 1) * q;
+    const base = Math.floor(pos);
+    const rest = pos - base;
+    if (sorted[base + 1] !== undefined) {
+      return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+    } else {
+      return sorted[base];
+    }
+  }
+
+  function getColor(value, min, max) {
+
+    if (value === null || value === undefined || value === 0) {
+      return 'rgb(128,128,128)';
+    }
+
+    if (min === max) {
+      return 'rgb(0,255,0)';
+    }
+
+    // Clamp the value between min and max
+    const clampedValue = Math.min(Math.max(value, min), max);
+    const normalizedValue = (clampedValue - min) / (max - min);
+
+    // Calculate red and green components
+    const r = Math.round(255 * (1 - normalizedValue));
+    const g = Math.round(255 * normalizedValue);
+    const b = 0;
+
+    return `rgb(${r},${g},${b})`;
+  }
+  function style(feature) {
+    const values = window.currentIndicators?.map(i => i.value).filter(v => v !== null && v !== undefined) || [];
+    /// sort values
+    values.sort((a, b) => a - b);
+    let currentMin = values[0];
+    // delete multiple values that has the minimum value
+    for (let i = 1; i < values.length; i++) {
+      if (values[i] !== currentMin) {
+        currentMin = values[i];
+        break;
+      }
+    }
+
+    let currentMax = values[values.length - 1];
+    // delete multiple values that has the maximum value
+    for (let i = values.length - 2; i >= 0; i--) {
+      if (values[i] !== currentMax) {
+        currentMax = values[i];
+        break;
+      }
+    }
+
+    // Only calculate min/max if we have values
+    if (values.length === 0) {
+      return {
+        fillColor: 'rgb(128,128,128)',
+        weight: 1,
+        opacity: 1,
+        color: '#2a2a40',
+        fillOpacity: 0.7
+      };
+    }
+
+    let minmax = getMinMax(values);
+    const min = minmax[0];
+    const max = minmax[1];
+    const value = feature.properties.value;
+
+    return {
+      fillColor: getColor(value, min, max),
+      weight: 1,
+      opacity: 1,
+      color: '#2a2a40',
+      fillOpacity: 0.7
+    };
+  }
+  const info = L.control();
+
+  info.onAdd = function (map) {
+    this._div = L.DomUtil.create('div', 'info');
+    this.update();
+    return this._div;
+  };
+
+  info.update = function (props) {
+    this._div.innerHTML = `<h4>Province Data</h4>${props ?
+      `<b>${props.name}</b><br />Value: ${props.value?.toFixed(2) || 'No data'}`
+      : 'Hover over a province'}`;
+  };
+
+  info.addTo(map);
+
+  function highlightFeature(e) {
+    const layer = e.target;
+
+    layer.setStyle({
+      weight: 2,
+      color: '#fff',
+      fillOpacity: 0.9
+    });
+
+    layer.bringToFront();
+    info.update(layer.feature.properties);
+  }
+
+  function resetHighlight(e) {
+    const layer = e.target;
+    window.indonesiaLayer.resetStyle(layer);
+    info.update();
+  }
+
+  function zoomToFeature(e) {
+    map.fitBounds(e.target.getBounds());
+  }
+
+  function onEachFeature(feature, layer) {
+    layer.on({
+      mouseover: highlightFeature,
+      mouseout: resetHighlight,
+      click: zoomToFeature
+    });
+  }
+
+  // Event handlers
+  async function onTitleChange() {
+    const title = titleSelect.value;
+    if (!title) return;
+
+    const response = await fetch(`/?title=${encodeURIComponent(title)}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const data = await response.json();
+    console.log('Title change response:', data);
+
+    yearSelect.innerHTML = `
+        <option value="">Select year</option>
+        ${data.years.map(year => `<option value="${year}">${year}</option>`).join('')}
+      `;
+    yearSelect.style.display = 'inline-block';
+
+    // Auto-select the first year and trigger the change
+    if (data.years.length > 0) {
+      yearSelect.value = data.years[0];
+      onYearChange();
+    }
+
+    // Update the map
+    updateMapData(data.indicators);
+
+    // Update the national average
+    updateNationalAverage(title, yearSelect.value);
+  }
+
+  async function onYearChange() {
+    const title = titleSelect.value;
+    const year = yearSelect.value;
+    if (!title || !year) return;
+
+    const response = await fetch(`/?title=${encodeURIComponent(title)}&year=${encodeURIComponent(year)}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const data = await response.json();
+    console.log('Year change response:', data);
+    updateMapData(data.indicators);
+
+    // Update the national average
+    updateNationalAverage(title, year);
+  }
+
+  async function onProvinceChange() {
+    // Update the graph
+    updateGraph();
+  }
+
+  async function onGraphTitleChange() {
+    // Update the graph
+    updateGraph();
+  }
+
+  async function updateNationalAverage(title, year) {
+    const response = await fetch(`/national_average?title=${encodeURIComponent(title)}&year=${encodeURIComponent(year)}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const data = await response.json();
+    nationalAverageValue.textContent = data.value !== null ? data.value.toFixed(2) : 'N/A';
+  }
+
+  function updateMapData(indicators) {
+    console.log('Updating map with indicators:', indicators);
+    window.currentIndicators = indicators;
+
+    const geoJSON = convertToGeoJSON(Geometries);
+    const mergedData = {
+      ...geoJSON,
+      features: geoJSON.features.map(feature => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          value: indicators.find(i => i.province === feature.properties.name)?.value || 0
+        }
+      }))
+    };
+
+    if (window.indonesiaLayer) {
+      map.removeLayer(window.indonesiaLayer);
+    }
+
+    window.indonesiaLayer = L.geoJSON(mergedData, {
+      style: style,
+      onEachFeature: onEachFeature
+    }).addTo(map);
+
+    updateLegend(indicators.map(i => i.value));
+  }
+
+  // Legend control
+  const legend = L.control({ position: 'bottomright' });
+
+  function updateLegend(values) {
+    const minmax = getMinMax(values);
+    const min = minmax[0];
+    const max = minmax[1];
+    const steps = 5;
+    const range = max - min;
+
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create('div', 'info legend');
+      div.innerHTML = '<h4>Value Range</h4>';
+
+      for (let i = 0; i < steps; i++) {
+        const value = min + (range * i / (steps - 1));
+        div.innerHTML += `
+                <i style="background:${getColor(value, min, max)}"></i>
+                ${value.toFixed(2)}${i === steps - 1 ? '+' : ''}<br>
+            `;
+      }
+      return div;
+    };
+    legend.addTo(map);
+  }
+
+  function updateGraph() {
+    const title = graphTitleSelect.value;
+    const province = provinceSelect.value;
+
+    if (!title || !province) return;
+
+    fetch(`/graph?title=${encodeURIComponent(title)}&province=${encodeURIComponent(province)}`, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(response => response.json())
+      .then(data => {
+        const years = data.map(d => d.year);
+        const values = data.map(d => d.value);
+
+        const trace = {
+          x: years,
+          y: values,
+          type: 'scatter',
+          mode: 'lines+markers',
+          marker: { color: 'blue' }
+        };
+
+        const layout = {
+          title: `Trend of ${title} in ${province}`,
+          xaxis: { title: 'Year' },
+          yaxis: { title: 'Value' },
+          paper_bgcolor: '#1a1a2e',
+          plot_bgcolor: '#1a1a2e',
+          font: { color: '#fff' }
+        };
+
+        Plotly.newPlot('graph', [trace], layout);
+      });
+  }
+
+  const initialIndicators = {{ indicators| tojson | safe }};
+  if (initialIndicators.length) {
+    window.currentIndicators = initialIndicators;
+    updateMapData(initialIndicators);
+  } else {
+    const emptyGeoJSON = convertToGeoJSON(Geometries);
+    window.indonesiaLayer = L.geoJSON(emptyGeoJSON, {
+      style: style,
+      onEachFeature: onEachFeature
+    }).addTo(map);
+  }
+
+  // Auto-select the first province and trigger the change
+  if (provinceSelect.options.length > 0) {
+    provinceSelect.value = provinceSelect.options[0].value;
+    updateGraph();
+  }
+</script>
+
+{% endblock %}

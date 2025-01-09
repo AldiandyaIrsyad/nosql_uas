@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Create Indicator{% endblock %}
+
+{% block head %}
+<script>
+  function validateForm() {
+    const yearInput = document.getElementById('year');
+    const valueInput = document.getElementById('value');
+    // getCurrentdate
+    const currentYear = new Date().getFullYear();
+    const minYear = currentYear - 5;
+    const maxYear = currentYear + 5;
+
+    // Year validation
+    const year = parseInt(yearInput.value);
+    if (year < minYear || year > maxYear) {
+      alert(`Year must be between ${minYear} and ${maxYear}`);
+      return false;
+    }
+
+    // Value validation
+    const value = parseFloat(valueInput.value);
+    if (isNaN(value)) {
+      alert('Value must be a valid number');
+      return false;
+    }
+
+    return true;
+  }
+
+  // Format value to 2 decimal places on input
+  function formatValue(input) {
+    if (input.value !== '') {
+      input.value = parseFloat(input.value).toFixed(2);
+    }
+  }
+
+  let firstClick = true;
+  function loadTitles() {
+    if (!firstClick) {
+      return;
+    }
+    firstClick = false;
+    const indicator = document.querySelector('select[name="indicator"]').value;
+    fetch(`/indicators/titles?indicator=${indicator}`)
+      .then(response => response.json())
+      .then(titles => {
+        const select = document.querySelector('select[name="title"]');
+        select.innerHTML = '<option value="">Select a title</option>';
+        titles['titles'].forEach(title => {
+          select.innerHTML += `<option value="${title}">${title}</option>`;
+        });
+      });
+  }
+
+  function resetClick() {
+    firstClick = true;
+    const select = document.querySelector('select[name="title"]');
+    select.innerHTML = '<option value="">Select a title</option>';
+  }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="bg-gray-900 py-6 flex flex-col justify-center sm:py-12">
+  <div class="relative py-3 sm:max-w-xl sm:mx-auto w-4/5">
+    <div class="relative px-4 py-10 bg-gray-800 mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
+      <div class="max-w-md mx-auto">
+        <div class="flex items-center space-x-5">
+          <div class="block pl-2 font-semibold text-xl text-white">
+            <h2 class="leading-relaxed">Create New Indicator</h2>
+          </div>
+        </div>
+
+        {% if error %}
+        <div class="mt-4 p-4 text-red-700 bg-red-100 rounded-lg">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" class="divide-y divide-gray-700" onsubmit="return validateForm()">
+          <div class="py-8 text-base leading-6 space-y-6 text-white sm:text-lg sm:leading-7">
+            <div class="flex flex-col">
+              <label class="leading-loose">Province</label>
+              <input type="text" name="province" value="{{ current_user.province }}" readonly
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700">
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Year</label>
+              <input type="number" id="year" name="year" required
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700"
+                min="{{ min_year }}" max="{{ max_year }}" value="{{ current_year }}">
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Indicator</label>
+              <select name="indicator" required
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700"
+                onchange="resetClick()">
+                <option value="">Select an indicator</option>
+
+                {% for indicator in indicators %}
+                <option value="{{ indicator }}">{{ indicator }}</option>
+
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Title</label>
+              <select name="title" required
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700"
+                onclick="loadTitles()">
+                <option value="">Select a title</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col">
+              <label class="leading-loose">Value</label>
+              <input type="number" id="value" name="value" step="0.01" required onchange="formatValue(this)"
+                class="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-600 rounded-md focus:outline-none text-gray-300 bg-gray-700">
+            </div>
+          </div>
+          <div class="pt-4 flex items-center space-x-4">
+            <button type="submit"
+              class="bg-blue-600 flex justify-center items-center w-full text-white px-4 py-3 rounded-md focus:outline-none hover:bg-blue-700 transition duration-300 ease-in-out">
+              Create Indicator
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
